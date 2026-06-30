@@ -45,12 +45,6 @@ locals {
   my_domain    = "mydomain.com"
 }
 
-# data "aws_acm_certificate" "my_domain" {
-#   region   = "us-east-1"
-#   domain   = "*.${local.my_domain}"
-#   statuses = ["ISSUED"]
-# }
-
 resource "aws_cloudfront_origin_access_control" "default" {
   name                              = "default-oac"
   origin_access_control_origin_type = "s3"
@@ -71,8 +65,6 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   comment             = "Some comment"
   default_root_object = "index.html"
 
-  # aliases = ["mysite.${local.my_domain}", "yoursite.${local.my_domain}"]
-
   default_cache_behavior {
     allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods   = ["GET", "HEAD"]
@@ -92,7 +84,6 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     max_ttl                = 86400
   }
 
-  # Cache behavior with precedence 0
   ordered_cache_behavior {
     path_pattern     = "/content/immutable/*"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
@@ -115,7 +106,6 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     viewer_protocol_policy = "redirect-to-https"
   }
 
-  # Cache behavior with precedence 1
   ordered_cache_behavior {
     path_pattern     = "/content/*"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
@@ -151,26 +141,6 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   viewer_certificate {
-    # acm_certificate_arn = data.aws_acm_certificate.my_domain.arn
-    # ssl_support_method  = "sni-only"
     cloudfront_default_certificate = true
   }
 }
-
-# Create Route53 records for the CloudFront distribution aliases
-# data "aws_route53_zone" "my_domain" {
-#   name = local.my_domain
-# }
-
-# resource "aws_route53_record" "cloudfront" {
-#   for_each = aws_cloudfront_distribution.s3_distribution.aliases
-#   zone_id  = data.aws_route53_zone.my_domain.zone_id
-#   name     = each.value
-#   type     = "A"
-
-#   alias {
-#     name                   = aws_cloudfront_distribution.s3_distribution.domain_name
-#     zone_id                = aws_cloudfront_distribution.s3_distribution.hosted_zone_id
-#     evaluate_target_health = false
-#   }
-# }
